@@ -15,7 +15,7 @@ enum AssetType {
 }
 
 model Goal {
-  id                  String       @id @default(uuid())
+  id                  Int          @id @default(autoincrement())
   title               String
   description         String
   targetDate          DateTime
@@ -24,17 +24,19 @@ model Goal {
   allocations         Allocation[]
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
+  deletedAt           DateTime?
 }
 
 model Allocation {
-  id        String    @id @default(uuid())
-  goalId    String
+  id        Int       @id @default(autoincrement())
+  goalId    Int
   goal      Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
   label     String
   type      AssetType
   amount    Float
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([goalId])
 }

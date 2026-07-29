@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore
+.prettierrc
+eslint.config.mjs
+test
+**/*.spec.ts
