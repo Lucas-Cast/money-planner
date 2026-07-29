@@ -28,15 +28,17 @@ model Goal {
 }
 
 model Allocation {
-  id        Int       @id @default(autoincrement())
-  goalId    Int
-  goal      Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  label     String
-  type      AssetType
-  amount    Float
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  id           Int       @id @default(autoincrement())
+  goalId       Int
+  goal         Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  label        String
+  type         AssetType
+  amount       Float
+  unitPrice    Float?
+  yieldPercent Float?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 
   @@index([goalId])
 }

@@ -21,6 +21,8 @@ export class AllocationService {
       label: dto.label,
       type: dto.type,
       amount: dto.amount,
+      unitPrice: dto.unitPrice,
+      yieldPercent: dto.yieldPercent,
       goal: { connect: { id: dto.goalId } },
     })
   }
