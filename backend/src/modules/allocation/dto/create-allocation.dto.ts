@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { AssetType } from '../../../../generated/prisma/client'
-import { IsEnum, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator'
+import {
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator'
 
 export class CreateAllocationDto {
   @ApiProperty({ example: 1 })
@@ -15,20 +22,30 @@ export class CreateAllocationDto {
   @IsEnum(AssetType)
   type: AssetType
 
-  @ApiProperty({ example: 1000, minimum: 0 })
+  @ApiProperty({ example: 1000, minimum: 0, description: 'Amount in BRL' })
   @IsNumber()
   @Min(0)
   amount: number
 
   @ApiPropertyOptional({
-    example: 350000,
+    example: 60000,
     minimum: 0,
-    description: 'Unit purchase price (e.g. BTC)',
+    description: 'Entry price per asset unit (e.g. ETH/BTC/MSTR)',
   })
   @IsOptional()
   @IsNumber()
   @Min(0)
-  unitPrice?: number
+  entryPrice?: number
+
+  @ApiPropertyOptional({
+    example: 5,
+    minimum: 0,
+    description: 'FX rate in BRL per 1 USD',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  fxRate?: number
 
   @ApiPropertyOptional({
     example: 110,

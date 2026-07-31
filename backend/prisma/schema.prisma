@@ -11,6 +11,7 @@ datasource db {
 enum AssetType {
   CDB
   BTC
+  USD
   OTHER
 }
 
@@ -34,7 +35,8 @@ model Allocation {
   label        String
   type         AssetType
   amount       Float
-  unitPrice    Float?
+  entryPrice   Float?
+  fxRate       Float?
   yieldPercent Float?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
