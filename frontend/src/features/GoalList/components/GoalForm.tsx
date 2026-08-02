@@ -1,10 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { useEffect } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { DatePicker } from '@/shared/components/date-picker'
 import { TextInput } from '@/shared/components/text-input'
 import { routes } from '@/shared/config/routes'
 import { usePost } from '@/shared/hooks/use-post'
+import { usePatch } from '@/shared/hooks/use-patch'
+import { formatCurrency } from '@/shared/utils/allocation'
 import type { Goal } from '@/shared/models/goal'
 
 const goalFormSchema = z.object({
@@ -19,10 +22,33 @@ type GoalFormValues = z.infer<typeof goalFormSchema>
 
 type GoalFormProps = {
   onCreated: () => void
+  goal?: Goal
 }
 
-export function GoalForm({ onCreated }: GoalFormProps) {
-  const { post, loading, error } = usePost<Goal, GoalFormValues>()
+function toDateInputValue(value: string) {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
+function estimateContributionTotal(targetDate: string, monthlyContribution?: number) {
+  if (!targetDate || monthlyContribution == null || monthlyContribution <= 0) return null
+
+  const today = new Date()
+  const deadline = new Date(`${targetDate}T00:00:00`)
+
+  if (Number.isNaN(deadline.getTime()) || deadline <= today) return null
+
+  const monthsUntilDeadline = Math.max(
+    1,
+    (deadline.getFullYear() - today.getFullYear()) * 12 + deadline.getMonth() - today.getMonth(),
+  )
+
+  return monthlyContribution * monthsUntilDeadline
+}
+
+export function GoalForm({ onCreated, goal }: GoalFormProps) {
+  const { post, loading: creating, error: createError } = usePost<Goal, GoalFormValues>()
+  const { patch, loading: updating, error: updateError } = usePatch<Goal, GoalFormValues>()
   const {
     control,
     handleSubmit,
@@ -38,12 +64,35 @@ export function GoalForm({ onCreated }: GoalFormProps) {
       monthlyContribution: undefined,
     },
   })
+  const targetDate = useWatch({ control, name: 'targetDate' })
+  const monthlyContribution = useWatch({ control, name: 'monthlyContribution' })
+  const estimatedTotal = estimateContributionTotal(targetDate, monthlyContribution)
+
+  useEffect(() => {
+    if (!goal) return
+    reset({
+      title: goal.title,
+      description: goal.description,
+      targetDate: toDateInputValue(goal.targetDate),
+      targetValue: goal.targetValue,
+      monthlyContribution: goal.monthlyContribution,
+    })
+  }, [goal, reset])
+
+  const loading = creating || updating
+  const error = createError ?? updateError
 
   const onSubmit = async (values: GoalFormValues) => {
-    await post(routes.goals.create, {
+    const payload = {
       ...values,
       targetDate: new Date(`${values.targetDate}T00:00:00`).toISOString(),
-    })
+    }
+
+    if (goal) {
+      await patch(routes.goals.update(goal.id), payload)
+    } else {
+      await post(routes.goals.create, payload)
+    }
     reset()
     onCreated()
   }
@@ -102,8 +151,8 @@ export function GoalForm({ onCreated }: GoalFormProps) {
           <TextInput
             {...field}
             value={field.value ?? ''}
-            label="Contribuição mensal"
-            helperMessage="Opcional: quanto você pretende investir por mês?"
+            label="Contribuição mensal pretendida"
+            helperMessage="Opcional. Usada apenas para exibir uma estimativa simples no prazo da meta."
             type="number"
             min="0"
             step="0.01"
@@ -115,9 +164,16 @@ export function GoalForm({ onCreated }: GoalFormProps) {
         )}
       />
 
+      {estimatedTotal != null && (
+        <p className="rounded-2xl bg-[var(--accent-bg)] px-4 py-3 text-sm leading-6 text-[var(--text)]">
+          Mantendo essa contribuição mensal pretendida, ao final da meta você terá acumulado aproximadamente{' '}
+          <strong className="font-semibold text-[var(--text-h)]">{formatCurrency(estimatedTotal)}</strong>.
+        </p>
+      )}
+
       {Boolean(error) && (
         <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">
-          Não foi possível criar a meta. Verifique os dados e tente novamente.
+          Não foi possível {goal ? 'atualizar' : 'criar'} a meta. Verifique os dados e tente novamente.
         </p>
       )}
 
@@ -126,7 +182,7 @@ export function GoalForm({ onCreated }: GoalFormProps) {
         disabled={loading}
         className="w-full rounded-2xl bg-[var(--text-h)] px-5 py-3 text-sm font-semibold text-[var(--bg)] transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text-h)] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? 'Salvando...' : 'Criar meta'}
+        {loading ? 'Salvando...' : goal ? 'Salvar alterações' : 'Criar meta'}
       </button>
     </form>
   )

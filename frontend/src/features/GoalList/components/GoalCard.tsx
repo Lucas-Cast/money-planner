@@ -1,8 +1,11 @@
 import type { Goal } from '@/shared/models/goal'
+import { useNavigate } from 'react-router-dom'
 
 type GoalCardProps = {
   goal: Goal
   onOpen?: (goal: Goal) => void
+  onDelete?: (goal: Goal) => void
+  onEdit?: (goal: Goal) => void
   detailsPath?: string
 }
 
@@ -20,14 +23,16 @@ function formatDate(date: string) {
   }).format(parsedDate)
 }
 
-export function GoalCard({ goal, onOpen, detailsPath }: GoalCardProps) {
+export function GoalCard({ goal, onOpen, onDelete, onEdit, detailsPath }: GoalCardProps) {
+  const navigate = useNavigate()
+
   const handleOpen = () => {
     if (onOpen) {
       onOpen(goal)
       return
     }
 
-    window.location.assign(detailsPath ?? `/goals/${goal.id}`)
+    navigate(detailsPath ?? `/goals/${goal.id}`)
   }
 
   return (
@@ -38,9 +43,18 @@ export function GoalCard({ goal, onOpen, detailsPath }: GoalCardProps) {
           Meta financeira
         </span>
 
-        <span className="shrink-0 text-xs font-medium text-[var(--text)]">
-          #{goal.id}
-        </span>
+        <div className="flex flex-col items-center gap-1">
+          {onDelete && (
+            <button type="button" onClick={() => onDelete(goal)} aria-label={`Excluir a meta ${goal.title}`} className="rounded-xl p-2 text-red-500 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 dark:hover:bg-red-950/30">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16m-10 4v6m4-6v6M9 7V4h6v3m-9 0 1 13h10l1-13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+          )}
+          {onEdit && (
+            <button type="button" onClick={() => onEdit(goal)} aria-label={`Editar a meta ${goal.title}`} className="rounded-xl p-2 text-[var(--text)] transition hover:bg-[var(--accent-bg)] hover:text-[var(--text-h)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--text-h)]">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 16.5-.75 3.25L6.5 19l10.9-10.9a2.12 2.12 0 0 0-3-3L3.5 16.1M13 6l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1">

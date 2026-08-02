@@ -4,13 +4,18 @@ import { GoalCard } from './components/GoalCard'
 import { GoalForm } from './components/GoalForm'
 import { LoadingCard } from './components/LoadingCard'
 import { Modal } from '@/shared/components/modal'
+import { ConfirmDeleteModal } from '@/shared/components/confirm-delete-modal'
 import { routes } from '@/shared/config/routes'
 import { useGet } from '@/shared/hooks/use-get'
+import { useDelete } from '@/shared/hooks/use-delete'
 import type { Goal } from '@/shared/models/goal'
 
 export function GoalList() {
   const { data: goals, error, loading, get } = useGet<Goal[]>()
+  const { remove: deleteGoal, loading: deletingGoal, error: deleteError } = useDelete()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null)
+  const [goalToEdit, setGoalToEdit] = useState<Goal | null>(null)
 
   const loadGoals = useCallback(() => {
     get(routes.goals.list).catch(() => undefined)
@@ -19,6 +24,22 @@ export function GoalList() {
   const handleGoalCreated = () => {
     setIsModalOpen(false)
     loadGoals()
+  }
+
+  const handleGoalUpdated = () => {
+    setGoalToEdit(null)
+    loadGoals()
+  }
+
+  const handleDeleteGoal = async () => {
+    if (!goalToDelete) return
+    try {
+      await deleteGoal(routes.goals.delete(goalToDelete.id))
+      setGoalToDelete(null)
+      loadGoals()
+    } catch {
+      // O hook mantém o erro para ser exibido no modal de confirmação.
+    }
   }
 
   useEffect(() => {
@@ -80,12 +101,23 @@ export function GoalList() {
   return (
     <section aria-label="Suas metas" className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
       {goals.map((goal) => (
-        <GoalCard key={goal.id} goal={goal} />
+        <GoalCard key={goal.id} goal={goal} onDelete={setGoalToDelete} onEdit={setGoalToEdit} />
       ))}
       <AddGoalCard onClick={() => setIsModalOpen(true)} />
       <Modal open={isModalOpen} title="Adicionar meta" onClose={() => setIsModalOpen(false)}>
         <GoalForm onCreated={handleGoalCreated} />
       </Modal>
+      <Modal open={Boolean(goalToEdit)} title="Editar meta" onClose={() => setGoalToEdit(null)}>
+        {goalToEdit && <GoalForm goal={goalToEdit} onCreated={handleGoalUpdated} />}
+      </Modal>
+      <ConfirmDeleteModal
+        open={Boolean(goalToDelete)}
+        itemName={goalToDelete?.title ?? 'esta meta'}
+        loading={deletingGoal}
+        error={Boolean(deleteError)}
+        onClose={() => setGoalToDelete(null)}
+        onConfirm={handleDeleteGoal}
+      />
     </section>
   )
 }

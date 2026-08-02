@@ -1,6 +1,8 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { GoalList } from './features/GoalList/GoalList'
+import { GoalDetails } from './features/GoalDetails/GoalDetails'
 
-function App() {
+function HomePage() {
   return (
     <main className="min-h-screen bg-[var(--bg)] px-5 py-8 text-left sm:px-8 sm:py-12 lg:px-12">
       <div className="mx-auto max-w-7xl">
@@ -21,6 +23,18 @@ function App() {
         <GoalList />
       </div>
     </main>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/goals/:id" element={<GoalDetails />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
