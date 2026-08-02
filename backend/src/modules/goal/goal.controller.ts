@@ -30,6 +30,12 @@ export class GoalController {
     return this.goalService.findAll()
   }
 
+  @Get(':id/metrics')
+  @ApiOperation({ summary: 'Get goal metrics' })
+  getMetrics(@Param('id', ParseIntPipe) id: number) {
+    return this.goalService.getMetrics(id)
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a goal by id' })
   findOne(@Param('id', ParseIntPipe) id: number) {

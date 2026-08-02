@@ -8,7 +8,7 @@ import { routes } from '@/shared/config/routes'
 import { useGet } from '@/shared/hooks/use-get'
 import { useDelete } from '@/shared/hooks/use-delete'
 import type { Allocation } from '@/shared/models/allocation'
-import type { Goal } from '@/shared/models/goal'
+import type { Goal, GoalMetrics } from '@/shared/models/goal'
 import { formatCurrency } from '@/shared/utils/allocation'
 
 type GoalTab = 'overview' | 'allocations'
@@ -16,6 +16,10 @@ type GoalTab = 'overview' | 'allocations'
 function formatDate(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? 'Prazo não definido' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date)
+}
+
+function formatPercentage(value: number) {
+  return `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)}%`
 }
 
 export function GoalDetails() {
@@ -27,14 +31,16 @@ export function GoalDetails() {
   const [allocationToDelete, setAllocationToDelete] = useState<Allocation | null>(null)
   const [allocationToEdit, setAllocationToEdit] = useState<Allocation | null>(null)
   const { data: goal, error: goalError, loading: goalLoading, get: getGoal } = useGet<Goal>()
+  const { data: metrics, error: metricsError, loading: metricsLoading, get: getMetrics } = useGet<GoalMetrics>()
   const { data: allocations, error: allocationsError, loading: allocationsLoading, get: getAllocations } = useGet<Allocation[]>()
   const { remove: deleteAllocation, loading: deletingAllocation, error: deleteAllocationError } = useDelete()
 
   const loadData = useCallback(() => {
     if (!Number.isInteger(goalId) || goalId <= 0) return
     getGoal(routes.goals.getById(goalId)).catch(() => undefined)
+    getMetrics(routes.goals.metrics(goalId)).catch(() => undefined)
     getAllocations(routes.allocations.listByGoal(goalId)).catch(() => undefined)
-  }, [getAllocations, getGoal, goalId])
+  }, [getAllocations, getGoal, getMetrics, goalId])
 
   useEffect(() => {
     loadData()
@@ -43,11 +49,13 @@ export function GoalDetails() {
   const handleAllocationCreated = () => {
     setIsModalOpen(false)
     getAllocations(routes.allocations.listByGoal(goalId)).catch(() => undefined)
+    getMetrics(routes.goals.metrics(goalId)).catch(() => undefined)
   }
 
   const handleAllocationUpdated = () => {
     setAllocationToEdit(null)
     getAllocations(routes.allocations.listByGoal(goalId)).catch(() => undefined)
+    getMetrics(routes.goals.metrics(goalId)).catch(() => undefined)
   }
 
   const handleDeleteAllocation = async () => {
@@ -56,6 +64,7 @@ export function GoalDetails() {
       await deleteAllocation(routes.allocations.delete(allocationToDelete.id))
       setAllocationToDelete(null)
       getAllocations(routes.allocations.listByGoal(goalId)).catch(() => undefined)
+      getMetrics(routes.goals.metrics(goalId)).catch(() => undefined)
     } catch {
       // O hook mantém o erro para ser exibido no modal de confirmação.
     }
@@ -84,21 +93,61 @@ export function GoalDetails() {
         </button>
 
         <header className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(360px,520px)] lg:items-start">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text)]">Meta financeira</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[var(--text-h)] sm:text-4xl">{goal.title}</h1>
               <p className="mt-3 max-w-2xl leading-7 text-[var(--text)]">{goal.description}</p>
             </div>
-            <div className="flex shrink-0 gap-3">
-              <div className="rounded-2xl bg-[var(--accent-bg)] px-4 py-3 sm:text-right">
-                <p className="text-xs text-[var(--text)]">Valor da meta</p>
-                <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatCurrency(goal.targetValue)}</p>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-3 lg:justify-end">
+                <div className="rounded-2xl bg-[var(--accent-bg)] px-4 py-3 lg:text-right">
+                  <p className="text-xs text-[var(--text)]">Valor da meta</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatCurrency(goal.targetValue)}</p>
+                </div>
+                <div className="rounded-2xl bg-[var(--accent-bg)] px-4 py-3 lg:text-right">
+                  <p className="text-xs text-[var(--text)]">Prazo</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatDate(goal.targetDate)}</p>
+                </div>
               </div>
-              <div className="rounded-2xl bg-[var(--accent-bg)] px-4 py-3 sm:text-right">
-                <p className="text-xs text-[var(--text)]">Prazo</p>
-                <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatDate(goal.targetDate)}</p>
-              </div>
+              {metricsLoading && !metrics ? (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--accent-bg)] p-4">
+                  <div className="h-4 w-32 animate-pulse rounded-full bg-[var(--border)]" />
+                  <div className="mt-4 h-2 animate-pulse rounded-full bg-[var(--border)]" />
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="h-14 animate-pulse rounded-xl bg-[var(--border)]" />
+                    <div className="h-14 animate-pulse rounded-xl bg-[var(--border)]" />
+                  </div>
+                </div>
+              ) : null}
+              {metrics && !metricsError ? (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--accent-bg)] p-4">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-[var(--text)]">Completude</p>
+                      <p className="mt-1 text-2xl font-semibold text-[var(--text-h)]">{formatPercentage(metrics.completionPercentage)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-[var(--text)]">Falta</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatPercentage(metrics.missingPercentage)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--surface)]">
+                    <div className="h-full rounded-full bg-[var(--text-h)] transition-all" style={{ width: `${metrics.completionPercentage}%` }} />
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-[var(--text)]">Alocado</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatCurrency(metrics.totalAllocated)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[var(--text)]">Restante</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--text-h)]">{formatCurrency(metrics.remainingValue)}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {metricsError ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-950 dark:bg-red-950/30 dark:text-red-300">Não foi possível carregar as métricas.</p> : null}
             </div>
           </div>
 

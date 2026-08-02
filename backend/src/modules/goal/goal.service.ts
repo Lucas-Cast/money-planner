@@ -37,6 +37,25 @@ export class GoalService {
     return this.goalRepository.update(id, dto)
   }
 
+  async getMetrics(id: number) {
+    const goal = await this.findOne(id)
+    const totalAllocated = goal.allocations.reduce(
+      (sum, allocation) => sum + allocation.amount,
+      0,
+    )
+    const remainingValue = Math.max(goal.targetValue - totalAllocated, 0)
+    const completionPercentage =
+      goal.targetValue > 0 ? Math.min((totalAllocated / goal.targetValue) * 100, 100) : 0
+    const missingPercentage = Math.max(100 - completionPercentage, 0)
+
+    return {
+      totalAllocated,
+      remainingValue,
+      completionPercentage,
+      missingPercentage,
+    }
+  }
+
   async remove(id: number) {
     await this.findOne(id)
     await this.goalRepository.softDelete(id)

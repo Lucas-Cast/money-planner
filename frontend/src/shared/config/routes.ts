@@ -3,6 +3,7 @@ export const routes = {
     create: '/goals',
     list: '/goals',
     getById: (id: number) => `/goals/${id}`,
+    metrics: (id: number) => `/goals/${id}/metrics`,
     update: (id: number) => `/goals/${id}`,
     delete: (id: number) => `/goals/${id}`,
   },
