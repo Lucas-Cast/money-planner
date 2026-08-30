@@ -4,12 +4,14 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common'
-import { ApiOperation, ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { CreateGoalDto } from './dto/create-goal.dto'
+import { ImportGoalDto } from './dto/import-goals.dto'
 import { UpdateGoalDto } from './dto/update-goal.dto'
 import { GoalService } from './goal.service'
 
@@ -17,6 +19,24 @@ import { GoalService } from './goal.service'
 @Controller('goals')
 export class GoalController {
   constructor(private readonly goalService: GoalService) {}
+
+  @Post('import')
+  @ApiOperation({
+    summary: 'Import goals and their allocations from a JSON array',
+  })
+  @ApiBody({ type: ImportGoalDto, isArray: true })
+  import(
+    @Body(
+      new ParseArrayPipe({
+        items: ImportGoalDto,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    )
+    goals: ImportGoalDto[],
+  ) {
+    return this.goalService.import(goals)
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a goal' })

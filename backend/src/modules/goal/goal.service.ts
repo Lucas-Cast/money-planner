@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { CreateGoalDto } from './dto/create-goal.dto'
+import { ImportGoalDto } from './dto/import-goals.dto'
 import { UpdateGoalDto } from './dto/update-goal.dto'
 import { GoalRepository } from './goal.repository'
 
@@ -15,6 +16,41 @@ export class GoalService {
       targetValue: dto.targetValue,
       monthlyContribution: dto.monthlyContribution,
     })
+  }
+
+  async import(goals: ImportGoalDto[]) {
+    if (goals.length === 0) {
+      return { importedGoals: 0, importedAllocations: 0, goals: [] }
+    }
+
+    const importedGoals = await this.goalRepository.importMany(
+      goals.map((goal) => ({
+        title: goal.title,
+        description: goal.description,
+        targetDate: goal.targetDate,
+        targetValue: goal.targetValue,
+        monthlyContribution: goal.monthlyContribution,
+        allocations: {
+          create: goal.allocations.map((allocation) => ({
+            label: allocation.label,
+            type: allocation.type,
+            amount: allocation.amount,
+            entryPrice: allocation.entryPrice,
+            fxRate: allocation.fxRate,
+            yieldPercent: allocation.yieldPercent,
+          })),
+        },
+      })),
+    )
+
+    return {
+      importedGoals: importedGoals.length,
+      importedAllocations: importedGoals.reduce(
+        (total, goal) => total + goal.allocations.length,
+        0,
+      ),
+      goals: importedGoals,
+    }
   }
 
   findAll() {

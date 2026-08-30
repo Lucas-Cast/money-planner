@@ -10,6 +10,21 @@ export class GoalRepository {
     return this.database.goal.create({ data })
   }
 
+  async importMany(data: Prisma.GoalCreateInput[]) {
+    return this.database.$transaction(async (transaction) => {
+      const goals = await Promise.all(
+        data.map((goal) =>
+          transaction.goal.create({
+            data: goal,
+            include: { allocations: true },
+          }),
+        ),
+      )
+
+      return goals
+    })
+  }
+
   findAllActive() {
     return this.database.goal.findMany({
       where: { deletedAt: null },
