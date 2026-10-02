@@ -33,11 +33,12 @@ ENV NODE_ENV=production
 
 COPY --from=production-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/generated ./generated
+# Compiled imports resolve generated Prisma files relative to dist/src.
+COPY --from=build /app/generated ./dist/generated
 COPY package.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
 
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
